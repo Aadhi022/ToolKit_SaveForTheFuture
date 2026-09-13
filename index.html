@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOOLKIT!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Rubik:wght@500;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ======================== ANIMATED BACKGROUND ======================== -->
+<div class="bg-scene">
+  <div class="bg-parallax-layer" id="bgParallax">
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    <div class="bg-orb bg-orb-3"></div>
+    <div class="bg-orb bg-orb-4"></div>
+    <div class="bg-orb bg-orb-5"></div>
+  </div>
+  <div class="bg-grid"></div>
+  <div class="bg-particles" id="bgParticles"></div>
+</div>
+
+<!-- ======================== AUTH SCREEN ======================== -->
+<div id="auth">
+  <div class="auth-panel" id="authPanel">
+
+    <!-- Loading view -->
+    <div id="authLoading" class="auth-loading">
+      <div class="auth-title">TOOLKIT!</div>
+      <div class="spinner"></div>
+      <div class="auth-loading-text">powering up...</div>
+    </div>
+
+    <!-- Config error view -->
+    <div id="configError" class="config-error" style="display:none;">
+      <h3>⚠️ FIREBASE NOT CONFIGURED</h3>
+      <p>Open <code>script.js</code> and replace the <code>firebaseConfig</code> placeholder with your Firebase project credentials.</p>
+      <p>See the setup guide for step-by-step instructions.</p>
+    </div>
+
+    <!-- SIGN IN view -->
+    <div id="signInView" style="display:none;">
+      <div class="auth-title">WHO GOES THERE?!</div>
+      <div class="auth-sub">sign in to access your toolkit, hero.</div>
+      <div class="auth-row">
+        <span>👤</span>
+        <input type="text" id="signInId" placeholder="your user ID" autocomplete="username">
+      </div>
+      <div class="auth-row">
+        <span>🔒</span>
+        <input type="password" id="signInPw" placeholder="password" autocomplete="current-password">
+      </div>
+      <button class="auth-btn" id="signInBtn">SIGN IN!</button>
+      <div class="auth-error" id="signInError"></div>
+      <div class="auth-toggle">
+        don't have an account? <button id="showSignUp">sign up!</button>
+      </div>
+    </div>
+
+    <!-- SIGN UP view -->
+    <div id="signUpView" style="display:none;">
+      <div class="auth-title">JOIN THE LEAGUE!</div>
+      <div class="auth-sub">create your hero identity.</div>
+      <div class="auth-row">
+        <span>👤</span>
+        <input type="text" id="signUpId" placeholder="choose a user ID" autocomplete="username">
+      </div>
+      <div class="auth-userid-rules">3–20 characters · letters, numbers, underscores, hyphens</div>
+      <div class="auth-row">
+        <span>🔒</span>
+        <input type="password" id="signUpPw" placeholder="create a password (min 6 chars)" autocomplete="new-password">
+      </div>
+      <div class="pw-strength" id="pwStrength"></div>
+      <div class="pw-strength-label" id="pwStrengthLabel"></div>
+      <div class="auth-row" style="margin-top:6px;">
+        <span>🔒</span>
+        <input type="password" id="signUpPwConfirm" placeholder="confirm password" autocomplete="new-password">
+      </div>
+      <button class="auth-btn signup-btn" id="signUpBtn">CREATE ACCOUNT!</button>
+      <div class="auth-error" id="signUpError"></div>
+      <div class="auth-success" id="signUpSuccess"></div>
+      <div class="auth-toggle">
+        already have an account? <button id="showSignIn">sign in!</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ======================== SAVE INDICATOR ======================== -->
+<div class="save-indicator" id="saveIndicator"></div>
+
+<!-- ======================== MAIN APP ======================== -->
+<div class="wrap locked" id="wrap">
+
+  <header>
+    <div class="caption-box">meanwhile, in a browser tab...</div>
+    <div class="title-wrap">
+      <svg class="burst" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="100,0 118,60 178,40 138,90 200,100 138,110 178,160 118,140 100,200 82,140 22,160 62,110 0,100 62,90 22,40 82,60"
+          fill="#ed1c24" stroke="#141414" stroke-width="4"/>
+      </svg>
+      <h1>TOOLKIT!</h1>
+    </div>
+    <div class="subtitle">every tool a caped software engineer needs, in one panel. edit any card, and build your own filters from scratch.</div>
+    <div class="user-bar" id="userBar">
+      <div class="user-badge">
+        <span class="user-avatar" id="userAvatar"></span>
+        <span id="userNameDisplay"></span>
+      </div>
+      <button class="signout-btn" id="signOutBtn">🚪 SIGN OUT</button>
+    </div>
+  </header>
+
+  <div class="controls">
+    <div class="search-row">
+      <span>🔍</span>
+      <input type="text" id="search" placeholder="search the arsenal..." autocomplete="off">
+    </div>
+    <button class="add-btn" id="openAdd">+ ADD TOOL</button>
+  </div>
+
+  <div class="filter-row">
+    <div class="tags" id="tags"></div>
+  </div>
+  <div class="storage-note">your toolkit syncs across all your devices — sign in anywhere to access it.</div>
+
+  <div class="grid" id="grid"></div>
+
+  <footer>
+    tap a card to launch it · hover a card for edit ✏️ / delete 🗑 · <button id="resetBtn">reset to starter pack</button>
+  </footer>
+
+</div>
+
+<!-- ======================== TOOL ADD/EDIT MODAL ======================== -->
+<div id="modalOverlay">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">NEW GADGET!</div>
+    <form id="toolForm">
+      <div class="field">
+        <label for="f-name">Name</label>
+        <input type="text" id="f-name" required placeholder="e.g. Framer">
+      </div>
+      <div class="field">
+        <label for="f-url">Link</label>
+        <input type="url" id="f-url" required placeholder="https://...">
+      </div>
+      <div class="field">
+        <label for="f-icon">Icon</label>
+        <input type="text" id="f-icon" placeholder="simpleicons slug (e.g. framer) or full image URL">
+        <div class="hint">leave blank for a plain initial badge · slugs from simpleicons.org</div>
+      </div>
+      <div class="field">
+        <label for="f-desc">Short note</label>
+        <input type="text" id="f-desc" placeholder="what it's for">
+      </div>
+      <div class="field">
+        <label for="f-cat">Filter / category</label>
+        <input type="text" id="f-cat" list="cat-list" placeholder="e.g. design, ai, backend...">
+        <datalist id="cat-list"></datalist>
+        <div class="hint">pick an existing filter or type a brand new one</div>
+      </div>
+      <div class="modal-actions">
+        <button type="submit" class="btn-save">SAVE!</button>
+        <button type="button" class="btn-cancel" id="cancelBtn">CANCEL</button>
+        <button type="button" class="btn-delete" id="deleteBtn" style="display:none;">DELETE</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ======================== FIREBASE SDK ======================== -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="script.js"></script>
+
+</body>
+</html>
