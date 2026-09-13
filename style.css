@@ -29,7 +29,7 @@ html{scroll-behavior:smooth;}
 body{
   background:var(--paper);
   color:var(--text-primary);
-  font-family:'Rubik', sans-serif;
+  font-family:'Lora', serif;
   min-height:100vh;
   padding:40px 20px 90px;
   overflow-x:hidden;
@@ -137,7 +137,7 @@ body{
   opacity:0.2;
 }
 
-button{font-family:inherit;}
+button{font-family:'Lora', serif;}
 
 /* ==========================================================
    AUTH SCREEN
@@ -166,7 +166,7 @@ button{font-family:inherit;}
 }
 
 .auth-title{
-  font-family:'Bangers', cursive; font-size:36px; letter-spacing:1px;
+  font-family:'Lora', serif; font-size:36px; letter-spacing:1px;
   background:linear-gradient(135deg, var(--red), #ff6b35, var(--yellow));
   -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
   margin-bottom:6px; transform:rotate(-2deg);
@@ -177,7 +177,7 @@ button{font-family:inherit;}
 .google-btn{
   width:100%; display:flex; align-items:center; justify-content:center; gap:10px;
   background:#fff; border:1.5px solid rgba(0,0,0,0.14); border-radius:14px;
-  padding:12px 16px; font-family:'Rubik', sans-serif; font-size:14px; font-weight:700;
+  padding:12px 16px; font-family:'Lora', serif; font-size:14px; font-weight:700;
   color:#3c4043; cursor:pointer;
   box-shadow:0 2px 8px rgba(0,0,0,0.1);
   transition:transform 0.25s var(--ease-spring), box-shadow 0.25s, border-color 0.2s;
@@ -214,13 +214,13 @@ button{font-family:inherit;}
 }
 .auth-row input{
   background:none; border:none; outline:none; color:var(--ink);
-  font-family:'Rubik', sans-serif; font-weight:700; font-size:14px; flex:1; letter-spacing:1px;
+  font-family:'Lora', serif; font-weight:700; font-size:14px; flex:1; letter-spacing:1px;
 }
 .auth-row input::placeholder{color:#a09880; font-weight:600; letter-spacing:0;}
 
 .auth-btn{
   width:100%; border:none; border-radius:14px;
-  font-family:'Bangers', cursive; font-size:20px; letter-spacing:1px;
+  font-family:'Lora', serif; font-size:20px; letter-spacing:1px;
   padding:14px; cursor:pointer;
   background:linear-gradient(135deg, var(--yellow), #ffb700);
   color:var(--ink);
@@ -275,7 +275,7 @@ button{font-family:inherit;}
 
 /* Config error */
 .config-error{padding:20px; text-align:left;}
-.config-error h3{font-family:'Bangers', cursive; font-size:22px; color:var(--red); margin-bottom:10px;}
+.config-error h3{font-family:'Lora', serif; font-size:22px; color:var(--red); margin-bottom:10px;}
 .config-error p{font-size:12.5px; font-weight:600; line-height:1.7; margin-bottom:8px;}
 .config-error code{background:#f5f0e5; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:800;}
 
@@ -318,7 +318,7 @@ header{text-align:center; margin-bottom:34px;}
 @keyframes burstSpin{to{transform:rotate(360deg);}}
 
 h1{
-  font-family:'Bangers', cursive; font-size:68px; letter-spacing:3px;
+  font-family:'Lora', serif; font-size:68px; letter-spacing:3px;
   background:linear-gradient(135deg, var(--yellow), #fff, var(--yellow));
   background-size:200% 200%;
   -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
@@ -361,7 +361,7 @@ h1{
   width:26px; height:26px; border-radius:50%;
   background:linear-gradient(135deg, var(--blue), var(--cyan)); color:#fff;
   display:flex; align-items:center; justify-content:center;
-  font-family:'Bangers', cursive; font-size:13px; border:2px solid rgba(255,255,255,0.3);
+  font-family:'Lora', serif; font-size:13px; border:2px solid rgba(255,255,255,0.3);
   flex-shrink:0; overflow:hidden;
 }
 .user-badge .user-avatar img{
@@ -398,14 +398,14 @@ h1{
 }
 .search-row input{
   background:none; border:none; outline:none; color:var(--text-primary);
-  font-family:'Rubik', sans-serif; font-weight:600; font-size:14px; flex:1;
+  font-family:'Lora', serif; font-weight:600; font-size:14px; flex:1;
 }
 .search-row input::placeholder{color:var(--text-secondary);}
 
 .add-btn{
   background:linear-gradient(135deg, var(--red), #c41018); color:#fff;
   border:none; border-radius:14px;
-  font-family:'Bangers', cursive; font-size:16px; letter-spacing:0.5px; padding:13px 22px;
+  font-family:'Lora', serif; font-size:16px; letter-spacing:0.5px; padding:13px 22px;
   cursor:pointer;
   box-shadow:0 4px 16px rgba(237,28,36,0.3);
   transition:transform 0.25s var(--ease-spring), box-shadow 0.25s;
@@ -535,27 +535,31 @@ h1{
 .card:hover::after{transform:scaleX(1);}
 
 .card-actions{
-  position:absolute; top:-10px; left:-8px;
-  display:flex; gap:6px;
-  opacity:0; z-index:5; transform:translateY(6px);
-  transition:opacity 0.2s, transform 0.2s var(--ease-spring);
+  position:absolute; top:10px; right:10px;
+  display:flex; gap:5px; z-index:5;
 }
-.card:hover .card-actions{opacity:1; transform:translateY(0);}
 
 .icon-btn{
-  width:32px; height:32px; border-radius:50%; border:none;
-  background:linear-gradient(135deg, var(--yellow), #ffb700); color:var(--ink);
-  display:flex; align-items:center; justify-content:center;
-  font-size:12px; cursor:pointer;
-  box-shadow:0 3px 10px rgba(0,0,0,0.18);
-  transition:transform 0.2s var(--ease-spring), box-shadow 0.2s;
+  border:none; border-radius:8px;
+  padding:4px 10px;
+  font-family:'Lora', serif; font-size:10px; font-weight:800;
+  letter-spacing:0.4px; text-transform:uppercase;
+  cursor:pointer;
+  transition:transform 0.2s var(--ease-spring), opacity 0.2s;
 }
-.icon-btn.del{background:linear-gradient(135deg, #fff, #f0f0f0);}
-.icon-btn:hover{transform:translateY(-2px) scale(1.1); box-shadow:0 6px 16px rgba(0,0,0,0.22);}
-.icon-btn:active{transform:translateY(1px) scale(0.95);}
+.icon-btn.edit{
+  background:rgba(255,212,0,0.16); color:var(--yellow);
+  border:1px solid rgba(255,212,0,0.28);
+}
+.icon-btn.del{
+  background:rgba(237,28,36,0.14); color:#ff6b6b;
+  border:1px solid rgba(237,28,36,0.25);
+}
+.icon-btn:hover{opacity:0.8; transform:translateY(-1px);}
+.icon-btn:active{transform:translateY(1px);}
 
 .pow{
-  position:absolute; top:-14px; right:-10px; font-family:'Bangers', cursive; font-size:13px;
+  position:absolute; top:-14px; right:-10px; font-family:'Lora', serif; font-size:13px;
   color:#fff; background:var(--card-color, var(--red)); border:none; border-radius:50%;
   width:40px; height:40px; display:flex; align-items:center; justify-content:center;
   transform:rotate(12deg) scale(0); transition:transform 0.3s var(--ease-spring); line-height:1;
@@ -569,7 +573,7 @@ h1{
   width:46px; height:46px; border:1.5px solid var(--glass-border); border-radius:14px;
   display:flex; align-items:center; justify-content:center;
   background:rgba(255, 255, 255, 0.07);
-  flex-shrink:0; font-family:'Bangers', cursive; font-size:16px; overflow:hidden;
+  flex-shrink:0; font-family:'Lora', serif; font-size:16px; overflow:hidden;
   transition:transform 0.25s var(--ease-spring);
 }
 .card:hover .icon-box{transform:scale(1.08) rotate(-5deg);}
@@ -629,7 +633,7 @@ footer button:hover{color:var(--yellow);}
   to{opacity:1; transform:translateY(0) scale(1);}
 }
 .modal-title{
-  font-family:'Bangers', cursive; font-size:28px;
+  font-family:'Lora', serif; font-size:28px;
   background:linear-gradient(135deg, var(--blue), var(--cyan));
   -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
   margin-bottom:18px; transform:rotate(-1deg);
@@ -638,7 +642,7 @@ footer button:hover{color:var(--yellow);}
 .field label{display:block; font-size:11.5px; font-weight:800; text-transform:uppercase; margin-bottom:5px; letter-spacing:0.3px; color:var(--ink);}
 .field input{
   width:100%; border:1.5px solid rgba(20,20,20,0.12); border-radius:12px; padding:11px 14px;
-  font-family:'Rubik', sans-serif; font-weight:600; font-size:13.5px; outline:none;
+  font-family:'Lora', serif; font-weight:600; font-size:13.5px; outline:none;
   background:rgba(242, 240, 234, 0.9);
   transition:border-color 0.2s, box-shadow 0.2s, transform 0.2s var(--ease-smooth);
   color:var(--ink);
@@ -649,7 +653,7 @@ footer button:hover{color:var(--yellow);}
 .modal-actions{display:flex; gap:10px; margin-top:22px; flex-wrap:wrap;}
 .modal-actions button{
   border:none; border-radius:12px; padding:12px 20px;
-  font-family:'Bangers', cursive; font-size:16px; letter-spacing:0.5px; cursor:pointer;
+  font-family:'Lora', serif; font-size:16px; letter-spacing:0.5px; cursor:pointer;
   transition:transform 0.25s var(--ease-spring), box-shadow 0.25s;
 }
 .modal-actions button:hover{transform:translateY(-2px);}

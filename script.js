@@ -562,8 +562,8 @@ function renderGrid(list){
     card.rel = 'noopener noreferrer';
     card.innerHTML = `
       <div class="card-actions">
-        <button type="button" class="icon-btn edit" title="edit">✏️</button>
-        <button type="button" class="icon-btn del" title="delete">🗑</button>
+        <button type="button" class="icon-btn edit" title="edit">EDIT</button>
+        <button type="button" class="icon-btn del" title="delete">DEL</button>
       </div>
       <div class="pow">GO!</div>
       <div class="card-top">
