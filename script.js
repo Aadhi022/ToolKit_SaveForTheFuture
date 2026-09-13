@@ -1,767 +1,684 @@
 /* ==========================================================
-   TOOLKIT! — Application Script
+   TOOLKIT! — Style Sheet
    ========================================================== */
 
-// ===================================================================
-//  🔥 FIREBASE CONFIGURATION
-// ===================================================================
-const firebaseConfig = {
-  apiKey: "AIzaSyC9Nn-hbqDsMqZcJLRCs4C_dL9LaFVxQUs",
-  authDomain: "toolkit-saveforthefuture.firebaseapp.com",
-  projectId: "toolkit-saveforthefuture",
-  storageBucket: "toolkit-saveforthefuture.firebasestorage.app",
-  messagingSenderId: "947006243658",
-  appId: "1:947006243658:web:54025b6437efc1d89677b3"
-};
-
-// ===================================================================
-//  Initialize Firebase
-// ===================================================================
-let auth, db;
-let firebaseReady = false;
-
-try {
-  firebase.initializeApp(firebaseConfig);
-  auth = firebase.auth();
-  db   = firebase.firestore();
-  db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
-  firebaseReady = true;
-} catch(err) {
-  console.error('Firebase init error:', err);
+:root{
+  --ink:#141414;
+  --paper:#0a0a1a;
+  --paper-panel:#ffffff;
+  --red:#ed1c24;
+  --blue:#0072ce;
+  --yellow:#ffd400;
+  --purple:#7c3aed;
+  --cyan:#06b6d4;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --glass: rgba(255,255,255,0.08);
+  --glass-strong: rgba(255,255,255,0.12);
+  --glass-border: rgba(255,255,255,0.12);
+  --glass-light: rgba(255,255,255,0.72);
+  --glass-light-border: rgba(255,255,255,0.35);
+  --text-primary:#f0f0f5;
+  --text-secondary:rgba(240,240,245,0.6);
 }
 
-// Timeout fallback
-setTimeout(() => {
-  const loadingEl = document.getElementById('authLoading');
-  if(loadingEl && loadingEl.style.display !== 'none'){
-    loadingEl.style.display = 'none';
-    if(!firebaseReady){
-      document.getElementById('configError').style.display = 'block';
-    } else {
-      document.getElementById('signInView').style.display = 'block';
-    }
-  }
-}, 6000);
+*{box-sizing:border-box; margin:0; padding:0;}
+html{scroll-behavior:smooth;}
 
-// ===================================================================
-//  DOM REFS
-// ===================================================================
-const authEl         = document.getElementById('auth');
-const authPanel      = document.getElementById('authPanel');
-const authLoading    = document.getElementById('authLoading');
-const configError    = document.getElementById('configError');
-const signInView     = document.getElementById('signInView');
-const signUpView     = document.getElementById('signUpView');
-const signInIdInput  = document.getElementById('signInId');
-const signInPwInput  = document.getElementById('signInPw');
-const signInError    = document.getElementById('signInError');
-const signUpIdInput  = document.getElementById('signUpId');
-const signUpPwInput  = document.getElementById('signUpPw');
-const signUpPwConfirmInput = document.getElementById('signUpPwConfirm');
-const signUpError    = document.getElementById('signUpError');
-const signUpSuccess  = document.getElementById('signUpSuccess');
-const pwStrengthBar  = document.getElementById('pwStrength');
-const pwStrengthLabel= document.getElementById('pwStrengthLabel');
-const wrapEl         = document.getElementById('wrap');
-const saveIndicator  = document.getElementById('saveIndicator');
-
-// ===================================================================
-//  ANIMATED BACKGROUND — Lightweight Particles & Parallax
-// ===================================================================
-(function initParticles(){
-  const container = document.getElementById('bgParticles');
-  if(!container) return;
-  const PARTICLE_COUNT = 5; // Reduced for perf
-  const fragment = document.createDocumentFragment();
-  for(let i = 0; i < PARTICLE_COUNT; i++){
-    const p = document.createElement('div');
-    p.className = 'bg-particle';
-    const size = Math.random() * 2 + 1.5;
-    const duration = Math.random() * 14 + 16;
-    const delay = Math.random() * 12;
-    const left = Math.random() * 100;
-    p.style.cssText = `
-      width:${size}px; height:${size}px;
-      left:${left}%;
-      animation-duration:${duration}s;
-      animation-delay:${delay}s;
-    `;
-    fragment.appendChild(p);
-  }
-  container.appendChild(fragment);
-})();
-
-// Smooth background parallax — reduced movement for better perf
-(function init3DParallax(){
-  const layer = document.getElementById('bgParallax');
-  if(!layer) return;
-
-  let mouseX = 0, mouseY = 0;
-  let currentX = 0, currentY = 0;
-  let isTicking = false;
-
-  window.addEventListener('mousemove', e => {
-    const cx = window.innerWidth / 2;
-    const cy = window.innerHeight / 2;
-    mouseX = (e.clientX - cx) / cx;
-    mouseY = (e.clientY - cy) / cy;
-
-    if(!isTicking){
-      isTicking = true;
-      requestAnimationFrame(render);
-    }
-  }, { passive: true });
-
-  function render(){
-    const dx = mouseX - currentX;
-    const dy = mouseY - currentY;
-    currentX += dx * 0.05;
-    currentY += dy * 0.05;
-
-    // Reduced movement range: 12px / 8px instead of 25px / 18px
-    const moveX = (currentX * 12).toFixed(1);
-    const moveY = (currentY * 8).toFixed(1);
-
-    layer.style.transform = `translate3d(${moveX}px, ${moveY}px, 0)`;
-
-    if(Math.abs(dx) > 0.002 || Math.abs(dy) > 0.002){
-      requestAnimationFrame(render);
-    } else {
-      isTicking = false;
-    }
-  }
-})();
-
-// ===================================================================
-//  STARTER DATA
-// ===================================================================
-const DEFAULT_TOOLS = [
-  { id: "t1",  name: "Claude",        url: "https://claude.ai",                 icon: "claude",           cat: "ai",       desc: "reasoning, writing, and building things with me" },
-  { id: "t2",  name: "ChatGPT",       url: "https://chat.openai.com",           icon: "openai",           cat: "ai",       desc: "second opinion, quick sanity checks" },
-  { id: "t3",  name: "GitHub",        url: "https://github.com",                icon: "github",           cat: "vcs",      desc: "repos, issues, pull requests" },
-  { id: "t4",  name: "GitLab",        url: "https://gitlab.com",                icon: "gitlab",           cat: "vcs",      desc: "CI/CD pipelines and mirrors" },
-  { id: "t5",  name: "VS Code",       url: "https://code.visualstudio.com",     icon: "visualstudiocode", cat: "editor",   desc: "daily driver editor" },
-  { id: "t6",  name: "Stack Overflow",url: "https://stackoverflow.com",         icon: "stackoverflow",    cat: "ref",      desc: "someone already asked this" },
-  { id: "t7",  name: "MDN Web Docs",  url: "https://developer.mozilla.org",     icon: "mdnwebdocs",       cat: "ref",      desc: "the actual source of truth for web APIs" },
-  { id: "t8",  name: "DevDocs",       url: "https://devdocs.io",                icon: "devdocs",          cat: "ref",      desc: "every language's docs, one search bar" },
-  { id: "t9",  name: "LeetCode",      url: "https://leetcode.com",              icon: "leetcode",         cat: "practice", desc: "DSA practice, interview prep" },
-  { id: "t10", name: "Google Colab",  url: "https://colab.research.google.com", icon: "googlecolab",      cat: "practice", desc: "free GPU notebooks for quick experiments" },
-  { id: "t11", name: "Figma",         url: "https://figma.com",                icon: "figma",            cat: "design",   desc: "UI mockups and prototypes" },
-  { id: "t12", name: "Excalidraw",    url: "https://excalidraw.com",            icon: "excalidraw",       cat: "design",   desc: "quick system diagrams and whiteboarding" },
-  { id: "t13", name: "Postman",       url: "https://postman.com",               icon: "postman",          cat: "backend",  desc: "testing APIs before the frontend exists" },
-  { id: "t14", name: "Docker",        url: "https://docker.com",                icon: "docker",           cat: "backend",  desc: "containers so it works on every machine" },
-  { id: "t15", name: "npm",           url: "https://npmjs.com",                 icon: "npm",              cat: "backend",  desc: "package registry for JS projects" },
-  { id: "t16", name: "Vercel",        url: "https://vercel.com",               icon: "vercel",           cat: "deploy",   desc: "ship a frontend in a few clicks" },
-  { id: "t17", name: "Notion",        url: "https://notion.so",                icon: "notion",           cat: "misc",     desc: "project notes and planning" },
-  { id: "t18", name: "Regex101",      url: "https://regex101.com",              icon: "regex101",         cat: "misc",     desc: "build and debug regex without guessing" },
-];
-const DEFAULT_CATEGORIES = ["ai", "vcs", "editor", "ref", "practice", "design", "backend", "deploy", "misc"];
-
-const COLORS = ["#ed1c24", "#0072ce", "#e8a600"];
-
-let TOOLS = [];
-let CATEGORIES = [];
-let editingId = null;
-let activeCat = 'all';
-let currentUser = null;
-let currentUserId = null;
-let currentUserPhoto = null;
-
-// ===================================================================
-//  HELPERS
-// ===================================================================
-function uid(){ return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
-function iconUrl(slug){ return `https://cdn.simpleicons.org/${slug}/ffffff`; }
-
-function isValidUserId(id){ return /^[a-zA-Z0-9_-]{3,20}$/.test(id); }
-
-function shakePanel(){
-  authPanel.classList.remove('shake');
-  void authPanel.offsetWidth;
-  authPanel.classList.add('shake');
+body{
+  background:var(--paper);
+  color:var(--text-primary);
+  font-family:'Rubik', sans-serif;
+  min-height:100vh;
+  padding:40px 20px 90px;
+  overflow-x:hidden;
+  position:relative;
 }
 
-// Password strength
-function getPasswordStrength(pw){
-  if(!pw) return { score:0, label:'', color:'transparent' };
-  let score = 0;
-  if(pw.length >= 6) score++;
-  if(pw.length >= 10) score++;
-  if(/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
-  if(/[0-9]/.test(pw)) score++;
-  if(/[^a-zA-Z0-9]/.test(pw)) score++;
-  const levels = [
-    { label:'', color:'transparent' },
-    { label:'weak', color:'#ed1c24' },
-    { label:'fair', color:'#e8a600' },
-    { label:'good', color:'#0072ce' },
-    { label:'strong', color:'#28a745' },
-    { label:'excellent!', color:'#28a745' },
-  ];
-  return { score, ...levels[score] };
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important;}
 }
 
-signUpPwInput.addEventListener('input', () => {
-  const strength = getPasswordStrength(signUpPwInput.value);
-  pwStrengthBar.style.width = `${(strength.score / 5) * 100}%`;
-  pwStrengthBar.style.background = strength.color;
-  pwStrengthLabel.textContent = strength.label;
-  pwStrengthLabel.style.color = strength.color;
-});
-
-// Save indicator flash
-let saveIndicatorTimeout;
-function showSaveStatus(text, type){
-  clearTimeout(saveIndicatorTimeout);
-  saveIndicator.textContent = text;
-  saveIndicator.className = 'save-indicator show ' + type;
-  saveIndicatorTimeout = setTimeout(() => {
-    saveIndicator.classList.remove('show');
-  }, 2000);
+/* ==========================================================
+   ANIMATED BACKGROUND — Optimized
+   ========================================================== */
+.bg-scene{
+  position:fixed; inset:0; z-index:0; overflow:hidden;
+  background:linear-gradient(135deg, #0a0a1a 0%, #0f1628 30%, #0d1117 60%, #0a0a1a 100%);
+  contain:strict;
+  pointer-events:none;
 }
 
-// Firebase error messages
-function authErrorMessage(code){
-  const map = {
-    'auth/email-already-in-use':  'that user ID is already taken — pick another!',
-    'auth/user-not-found':        'no account with that ID. sign up first!',
-    'auth/wrong-password':        'wrong password. try again, sidekick.',
-    'auth/invalid-credential':    'wrong ID or password. try again!',
-    'auth/weak-password':         'password too weak — need at least 6 characters.',
-    'auth/too-many-requests':     'too many attempts — try again in a minute.',
-    'auth/network-request-failed':'network error — check your connection.',
-    'auth/invalid-email':         'invalid user ID format.',
-    'auth/popup-closed-by-user':  'sign-in popup was closed. try again!',
-    'auth/popup-blocked':         'popup blocked by browser. please allow popups for this site.',
-    'auth/cancelled-popup-request': '',
-  };
-  return map[code] || 'something went wrong. try again.';
+/* Parallax Layer */
+.bg-parallax-layer{
+  position:absolute; inset:-20px;
+  will-change:transform;
+  transform:translateZ(0);
+  pointer-events:none;
 }
 
-// ===================================================================
-//  AUTH VIEW TOGGLES
-// ===================================================================
-document.getElementById('showSignUp').addEventListener('click', () => {
-  signInView.style.display = 'none';
-  signUpView.style.display = 'block';
-  signUpError.textContent = '';
-  signUpSuccess.textContent = '';
-  signUpIdInput.focus();
-});
-document.getElementById('showSignIn').addEventListener('click', () => {
-  signUpView.style.display = 'none';
-  signInView.style.display = 'block';
-  signInError.textContent = '';
-  signInIdInput.focus();
-});
-
-// ===================================================================
-//  GOOGLE SIGN-IN
-// ===================================================================
-async function doGoogleSignIn(triggerBtn){
-  const btn = document.getElementById(triggerBtn);
-  if(btn){ btn.disabled = true; btn.textContent = 'opening google...'; }
-
-  try {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
-    await auth.signInWithPopup(provider);
-    // onAuthStateChanged handles the rest
-  } catch(err) {
-    const msg = authErrorMessage(err.code);
-    if(msg) {
-      // Show error in whichever view is visible
-      if(signInView.style.display !== 'none') signInError.textContent = msg;
-      else signUpError.textContent = msg;
-      shakePanel();
-    }
-  } finally {
-    if(btn){
-      btn.disabled = false;
-      btn.innerHTML = `
-        <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-        </svg>
-        Continue with Google`;
-    }
-  }
+/* Floating gradient orbs — reduced to 3, lighter blur for better perf */
+.bg-orb{
+  position:absolute; border-radius:50%;
+  filter:blur(12px); opacity:0.28;
+  will-change:transform;
+  pointer-events:none;
+  transform:translateZ(0);
+}
+.bg-orb-1{
+  width:480px; height:480px; top:-8%; left:-8%;
+  background:radial-gradient(circle, rgba(237,28,36,0.4) 0%, rgba(237,28,36,0.12) 50%, transparent 70%);
+  animation:orbFloat1 28s ease-in-out infinite;
+}
+.bg-orb-2{
+  width:520px; height:520px; top:30%; right:-8%;
+  background:radial-gradient(circle, rgba(0,114,206,0.35) 0%, rgba(0,114,206,0.1) 50%, transparent 70%);
+  animation:orbFloat2 34s ease-in-out infinite;
+}
+.bg-orb-3{
+  width:400px; height:400px; bottom:-8%; left:22%;
+  background:radial-gradient(circle, rgba(124,58,237,0.32) 0%, rgba(124,58,237,0.08) 50%, transparent 70%);
+  animation:orbFloat3 30s ease-in-out infinite;
 }
 
-document.getElementById('googleSignInBtn').addEventListener('click', () => doGoogleSignIn('googleSignInBtn'));
-document.getElementById('googleSignUpBtn').addEventListener('click', () => doGoogleSignIn('googleSignUpBtn'));
-
-// ===================================================================
-//  SIGN UP
-// ===================================================================
-async function doSignUp(){
-  signUpError.textContent = '';
-  signUpSuccess.textContent = '';
-
-  const userId = signUpIdInput.value.trim().toLowerCase();
-  const pw = signUpPwInput.value;
-  const pwConfirm = signUpPwConfirmInput.value;
-
-  if(!userId || !pw){
-    signUpError.textContent = 'fill in all fields, hero!';
-    shakePanel(); return;
-  }
-  if(!isValidUserId(userId)){
-    signUpError.textContent = 'user ID: 3–20 chars, letters/numbers/_/- only.';
-    shakePanel(); return;
-  }
-  if(pw.length < 6){
-    signUpError.textContent = 'password must be at least 6 characters.';
-    shakePanel(); return;
-  }
-  if(pw !== pwConfirm){
-    signUpError.textContent = 'passwords don\'t match!';
-    shakePanel(); return;
-  }
-
-  const btn = document.getElementById('signUpBtn');
-  btn.disabled = true;
-  btn.textContent = 'CREATING...';
-
-  try{
-    const email = userId + '@toolkit.app';
-    const cred = await auth.createUserWithEmailAndPassword(email, pw);
-
-    await db.collection('toolkits').doc(cred.user.uid).set({
-      userId: userId,
-      tools: DEFAULT_TOOLS,
-      categories: DEFAULT_CATEGORIES,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    signUpSuccess.textContent = `account "${userId}" created! signing you in...`;
-
-    signUpIdInput.value = '';
-    signUpPwInput.value = '';
-    signUpPwConfirmInput.value = '';
-    pwStrengthBar.style.width = '0';
-    pwStrengthLabel.textContent = '';
-
-  } catch(err){
-    signUpError.textContent = authErrorMessage(err.code);
-    shakePanel();
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'CREATE ACCOUNT!';
-  }
+@keyframes orbFloat1{
+  0%,100%{transform:translate3d(0,0,0);}
+  33%{transform:translate3d(40px,50px,0);}
+  66%{transform:translate3d(15px,80px,0);}
+}
+@keyframes orbFloat2{
+  0%,100%{transform:translate3d(0,0,0);}
+  33%{transform:translate3d(-50px,40px,0);}
+  66%{transform:translate3d(-70px,10px,0);}
+}
+@keyframes orbFloat3{
+  0%,100%{transform:translate3d(0,0,0);}
+  33%{transform:translate3d(45px,-50px,0);}
+  66%{transform:translate3d(60px,-20px,0);}
 }
 
-document.getElementById('signUpBtn').addEventListener('click', doSignUp);
-signUpPwConfirmInput.addEventListener('keydown', e => { if(e.key === 'Enter') doSignUp(); });
-
-// ===================================================================
-//  SIGN IN
-// ===================================================================
-async function doSignIn(){
-  signInError.textContent = '';
-
-  const userId = signInIdInput.value.trim().toLowerCase();
-  const pw = signInPwInput.value;
-
-  if(!userId || !pw){
-    signInError.textContent = 'enter your ID and password!';
-    shakePanel(); return;
-  }
-
-  const btn = document.getElementById('signInBtn');
-  btn.disabled = true;
-  btn.textContent = 'SIGNING IN...';
-
-  try{
-    const email = userId + '@toolkit.app';
-    await auth.signInWithEmailAndPassword(email, pw);
-  } catch(err){
-    signInError.textContent = authErrorMessage(err.code);
-    signInPwInput.value = '';
-    shakePanel();
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'SIGN IN!';
-  }
+/* Subtle dot grid overlay — static, zero repaint cost */
+.bg-grid{
+  position:absolute; inset:0;
+  background-image:radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size:28px 28px;
+  pointer-events:none;
 }
 
-document.getElementById('signInBtn').addEventListener('click', doSignIn);
-signInPwInput.addEventListener('keydown', e => { if(e.key === 'Enter') doSignIn(); });
-signInIdInput.addEventListener('keydown', e => { if(e.key === 'Enter') signInPwInput.focus(); });
-
-// ===================================================================
-//  SIGN OUT
-// ===================================================================
-document.getElementById('signOutBtn').addEventListener('click', async () => {
-  await auth.signOut();
-});
-
-// ===================================================================
-//  FIRESTORE: LOAD & SAVE
-// ===================================================================
-async function loadUserData(firebaseUid, fallbackUserId){
-  try{
-    const doc = await db.collection('toolkits').doc(firebaseUid).get();
-    if(doc.exists){
-      const data = doc.data();
-      TOOLS = data.tools || JSON.parse(JSON.stringify(DEFAULT_TOOLS));
-      CATEGORIES = data.categories || JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
-    } else {
-      // New Google user — create their doc with defaults
-      TOOLS = JSON.parse(JSON.stringify(DEFAULT_TOOLS));
-      CATEGORIES = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
-      await db.collection('toolkits').doc(firebaseUid).set({
-        userId: fallbackUserId,
-        tools: TOOLS,
-        categories: CATEGORIES,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    }
-  } catch(err){
-    console.error('Error loading data:', err);
-    TOOLS = JSON.parse(JSON.stringify(DEFAULT_TOOLS));
-    CATEGORIES = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
-  }
+/* Floating particles container */
+.bg-particles{position:absolute; inset:0; pointer-events:none;}
+.bg-particle{
+  position:absolute; border-radius:50%;
+  background:rgba(255,255,255,0.25);
+  animation:particleFloat linear infinite;
+  will-change:transform;
+  transform:translateZ(0);
+}
+@keyframes particleFloat{
+  0%{transform:translate3d(0, 100vh, 0); opacity:0;}
+  15%{opacity:0.5;}
+  85%{opacity:0.5;}
+  100%{transform:translate3d(0, -10vh, 0); opacity:0;}
 }
 
-let saveTimeout = null;
-function scheduleSave(){
-  if(saveTimeout) clearTimeout(saveTimeout);
-  showSaveStatus('☁️ saving...', 'saving');
-  saveTimeout = setTimeout(() => saveToFirestore(), 800);
+/* ==========================================================
+   LAYOUT
+   ========================================================== */
+.wrap{
+  max-width:960px; margin:0 auto; position:relative; z-index:1;
+  transition:transform 0.5s var(--ease-out-expo), opacity 0.5s var(--ease-out-expo);
+  will-change:opacity, transform;
+}
+.wrap.locked{
+  pointer-events:none;
+  user-select:none;
+  transform:scale(0.98);
+  opacity:0.2;
 }
 
-async function saveToFirestore(){
-  if(!currentUser) return;
-  try{
-    await db.collection('toolkits').doc(currentUser.uid).set({
-      userId: currentUserId,
-      tools: TOOLS,
-      categories: CATEGORIES,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-    showSaveStatus('✅ saved to cloud!', 'saved');
-  } catch(err){
-    console.error('Error saving:', err);
-    showSaveStatus('❌ save failed', 'error');
-  }
+button{font-family:inherit;}
+
+/* ==========================================================
+   AUTH SCREEN
+   ========================================================== */
+#auth{
+  position:fixed; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  z-index:200; padding:20px;
+  transition:opacity 0.5s var(--ease-out-expo), visibility 0.5s;
+}
+#auth.hidden{opacity:0; visibility:hidden; pointer-events:none;}
+
+.auth-panel{
+  width:min(420px, 100%);
+  background:rgba(255, 255, 255, 0.96);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border:1.5px solid rgba(255, 255, 255, 0.6); border-radius:24px; padding:36px 32px;
+  box-shadow:0 24px 64px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.7) inset;
+  text-align:center; color:var(--ink);
+  animation:authPanelIn 0.55s var(--ease-spring) both;
+}
+@keyframes authPanelIn{
+  from{opacity:0; transform:translateY(32px) scale(0.94);}
+  to{opacity:1; transform:translateY(0) scale(1);}
 }
 
-function saveTools(){ scheduleSave(); }
-function saveCategories(){ scheduleSave(); }
+.auth-title{
+  font-family:'Bangers', cursive; font-size:36px; letter-spacing:1px;
+  background:linear-gradient(135deg, var(--red), #ff6b35, var(--yellow));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  margin-bottom:6px; transform:rotate(-2deg);
+}
+.auth-sub{font-size:12.5px; font-weight:700; opacity:0.5; margin-bottom:20px; color:var(--ink);}
 
-// ===================================================================
-//  AUTH STATE OBSERVER
-// ===================================================================
-function unlockApp(userId, photoURL){
-  currentUserId = userId;
-  authEl.classList.add('hidden');
-  wrapEl.classList.remove('locked');
+/* ---- Google Button ---- */
+.google-btn{
+  width:100%; display:flex; align-items:center; justify-content:center; gap:10px;
+  background:#fff; border:1.5px solid rgba(0,0,0,0.14); border-radius:14px;
+  padding:12px 16px; font-family:'Rubik', sans-serif; font-size:14px; font-weight:700;
+  color:#3c4043; cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,0.1);
+  transition:transform 0.25s var(--ease-spring), box-shadow 0.25s, border-color 0.2s;
+  margin-bottom:18px;
+}
+.google-btn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 6px 20px rgba(0,0,0,0.15);
+  border-color:rgba(0,0,0,0.22);
+}
+.google-btn:active{transform:translateY(1px); box-shadow:0 1px 4px rgba(0,0,0,0.1);}
+.google-btn:disabled{opacity:0.6; cursor:not-allowed; transform:none !important;}
+.google-icon{width:20px; height:20px; flex-shrink:0;}
 
-  // Avatar: show Google profile photo if available, else initial letter
-  const avatarEl = document.getElementById('userAvatar');
-  if(photoURL){
-    avatarEl.innerHTML = `<img src="${photoURL}" alt="${userId}" referrerpolicy="no-referrer">`;
-  } else {
-    avatarEl.textContent = userId.charAt(0).toUpperCase();
-  }
-
-  document.getElementById('userNameDisplay').textContent = userId;
-  activeCat = 'all';
-  isInitialGridLoad = true;
-  refresh();
+/* ---- Divider ---- */
+.auth-divider{
+  display:flex; align-items:center; gap:12px;
+  margin:0 0 18px; color:#a09880; font-size:11.5px; font-weight:700;
+}
+.auth-divider::before,.auth-divider::after{
+  content:''; flex:1; height:1px;
+  background:linear-gradient(to right, transparent, rgba(0,0,0,0.12), transparent);
 }
 
-function lockApp(){
-  currentUser = null;
-  currentUserId = null;
-  currentUserPhoto = null;
-  TOOLS = [];
-  CATEGORIES = [];
-  authEl.classList.remove('hidden');
-  wrapEl.classList.add('locked');
-  authLoading.style.display = 'none';
-  signInView.style.display = 'block';
-  signUpView.style.display = 'none';
-  signInIdInput.value = '';
-  signInPwInput.value = '';
-  signInError.textContent = '';
-  signInIdInput.focus();
+.auth-row{
+  display:flex; align-items:center; gap:8px;
+  background:rgba(240, 238, 232, 0.85);
+  border:1.5px solid rgba(20,20,20,0.1); border-radius:14px; padding:12px 15px; margin-bottom:12px;
+  transition:border-color 0.2s, box-shadow 0.2s, transform 0.2s var(--ease-smooth);
+}
+.auth-row:focus-within{
+  border-color:var(--blue); box-shadow:0 0 0 3px rgba(0,114,206,0.1);
+  transform:translateY(-1px);
+}
+.auth-row input{
+  background:none; border:none; outline:none; color:var(--ink);
+  font-family:'Rubik', sans-serif; font-weight:700; font-size:14px; flex:1; letter-spacing:1px;
+}
+.auth-row input::placeholder{color:#a09880; font-weight:600; letter-spacing:0;}
+
+.auth-btn{
+  width:100%; border:none; border-radius:14px;
+  font-family:'Bangers', cursive; font-size:20px; letter-spacing:1px;
+  padding:14px; cursor:pointer;
+  background:linear-gradient(135deg, var(--yellow), #ffb700);
+  color:var(--ink);
+  box-shadow:0 4px 16px rgba(255,212,0,0.35);
+  transition:transform 0.25s var(--ease-spring), box-shadow 0.25s;
+  position:relative; overflow:hidden;
+}
+.auth-btn::after{
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.35) 45%, rgba(255,255,255,0.35) 55%, transparent 60%);
+  transform:translateX(-150%); transition:transform 0.5s var(--ease-smooth);
+}
+.auth-btn:hover::after{transform:translateX(150%);}
+.auth-btn:hover{transform:translateY(-2px) scale(1.01); box-shadow:0 8px 24px rgba(255,212,0,0.45);}
+.auth-btn:active{transform:translateY(1px) scale(0.99);}
+.auth-btn.signup-btn{
+  background:linear-gradient(135deg, var(--blue), #4da3e8); color:#fff;
+  box-shadow:0 4px 16px rgba(0,114,206,0.35);
+}
+.auth-btn.signup-btn:hover{box-shadow:0 8px 24px rgba(0,114,206,0.5);}
+.auth-btn:disabled{opacity:0.5; cursor:not-allowed; transform:none !important;}
+
+.auth-error{color:var(--red); font-weight:800; font-size:12.5px; margin-top:12px; min-height:14px;}
+.auth-success{color:var(--blue); font-weight:800; font-size:12.5px; margin-top:12px; min-height:14px;}
+.auth-toggle{margin-top:18px; font-size:12px; font-weight:700; color:#6a6a6a;}
+.auth-toggle button{
+  background:none; border:none; color:var(--blue); font-weight:800; font-size:12px;
+  cursor:pointer; text-decoration:underline; padding:0;
+  transition:color 0.2s;
+}
+.auth-toggle button:hover{color:var(--red);}
+.auth-userid-rules{
+  font-size:10.5px; font-weight:600; color:#8a8168; text-align:left;
+  margin-top:-6px; margin-bottom:12px; padding-left:4px;
 }
 
-if(firebaseReady){
-  auth.onAuthStateChanged(async (user) => {
-    authLoading.style.display = 'none';
-    if(user){
-      currentUser = user;
-
-      let userId;
-      const isGoogleUser = user.providerData.some(p => p.providerId === 'google.com');
-
-      if(isGoogleUser){
-        // Google user: use displayName (first name), fall back to email prefix
-        const displayName = user.displayName || '';
-        userId = displayName
-          ? displayName.split(' ')[0].toLowerCase().replace(/[^a-z0-9_-]/g, '') || user.email.split('@')[0]
-          : user.email.split('@')[0];
-        currentUserPhoto = user.photoURL || null;
-      } else {
-        // Email/password user: strip @toolkit.app
-        userId = user.email.split('@')[0];
-        currentUserPhoto = null;
-      }
-
-      await loadUserData(user.uid, userId);
-      unlockApp(userId, currentUserPhoto);
-    } else {
-      lockApp();
-    }
-  });
-} else {
-  authLoading.style.display = 'none';
-  configError.style.display = 'block';
+.shake{animation:shake 0.4s var(--ease-smooth);}
+@keyframes shake{
+  20%{transform:translateX(-8px) rotate(-1deg);} 40%{transform:translateX(8px) rotate(1deg);}
+  60%{transform:translateX(-5px);} 80%{transform:translateX(5px);} 100%{transform:translateX(0);}
 }
 
-// ===================================================================
-//  RENDER FUNCTIONS
-// ===================================================================
-function iconMarkup(tool){
-  const initial = (tool.name || '?').charAt(0).toUpperCase();
-  if(tool.icon && tool.icon.trim().startsWith('http')){
-    return `<img src="${tool.icon}" alt="" loading="lazy" onerror="this.parentElement.textContent='${initial}'">`;
-  }
-  if(tool.icon && tool.icon.trim()){
-    return `<img src="${iconUrl(tool.icon.trim())}" alt="" loading="lazy" onerror="this.parentElement.textContent='${initial}'">`;
-  }
-  return initial;
+/* Loading */
+.auth-loading{display:flex; flex-direction:column; align-items:center; gap:16px; padding:30px 0;}
+.spinner{
+  width:40px; height:40px; border:3px solid rgba(0,114,206,0.15); border-top-color:var(--blue);
+  border-radius:50%; animation:spin 0.85s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.auth-loading-text{font-size:13px; font-weight:700; color:#6a6a6a; animation:pulse 1.8s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:0.4;} 50%{opacity:1;}}
+
+/* Config error */
+.config-error{padding:20px; text-align:left;}
+.config-error h3{font-family:'Bangers', cursive; font-size:22px; color:var(--red); margin-bottom:10px;}
+.config-error p{font-size:12.5px; font-weight:600; line-height:1.7; margin-bottom:8px;}
+.config-error code{background:#f5f0e5; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:800;}
+
+/* ==========================================================
+   HEADER
+   ========================================================== */
+header{text-align:center; margin-bottom:34px;}
+
+.caption-box{
+  display:inline-block;
+  background:linear-gradient(135deg, var(--yellow), #ffb700);
+  border:none; border-radius:8px;
+  padding:7px 18px; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;
+  color:var(--ink);
+  box-shadow:0 4px 14px rgba(255,212,0,0.28);
+  transform:rotate(-1.5deg); margin-bottom:22px;
+  animation:captionIn 0.55s 0.1s var(--ease-spring) both;
+}
+@keyframes captionIn{
+  from{opacity:0; transform:rotate(-1.5deg) translateY(-20px) scale(0.75);}
+  to{opacity:1; transform:rotate(-1.5deg) translateY(0) scale(1);}
 }
 
-let isInitialGridLoad = true;
-
-function renderGrid(list){
-  const grid = document.getElementById('grid');
-  grid.innerHTML = '';
-  if(list.length === 0){
-    grid.innerHTML = '<div class="empty">no gadgets found — try another search or filter!</div>';
-    return;
-  }
-
-  const fragment = document.createDocumentFragment();
-  list.forEach((tool, i) => {
-    const color = COLORS[i % COLORS.length];
-    const card = document.createElement('a');
-    card.className = 'card' + (isInitialGridLoad ? ' animate-in' : '');
-    card.style.setProperty('--card-color', color);
-    if(isInitialGridLoad){
-      card.style.animationDelay = `${Math.min(0.04 * i, 0.4)}s`;
-    }
-    card.href = tool.url;
-    card.target = '_blank';
-    card.rel = 'noopener noreferrer';
-    card.innerHTML = `
-      <div class="card-actions">
-        <button type="button" class="icon-btn edit" title="edit">✏️</button>
-        <button type="button" class="icon-btn del" title="delete">🗑</button>
-      </div>
-      <div class="pow">GO!</div>
-      <div class="card-top">
-        <div class="icon-box">${iconMarkup(tool)}</div>
-      </div>
-      <div class="name">${tool.name}</div>
-      <div class="desc">${tool.desc || ''}</div>
-      <div class="cat">${tool.cat || 'misc'}</div>
-    `;
-
-    card.querySelector('.edit').addEventListener('click', e => {
-      e.preventDefault(); e.stopPropagation();
-      openModal(tool);
-    });
-    card.querySelector('.del').addEventListener('click', e => {
-      e.preventDefault(); e.stopPropagation();
-      if(confirm(`Remove "${tool.name}" from the toolkit?`)){
-        TOOLS = TOOLS.filter(t => t.id !== tool.id);
-        saveTools();
-        refresh();
-      }
-    });
-    fragment.appendChild(card);
-  });
-  grid.appendChild(fragment);
-  isInitialGridLoad = false;
+.title-wrap{
+  position:relative; display:flex; justify-content:center; align-items:center;
+  padding:20px 0 10px; opacity:0; animation:slam 0.65s 0.15s var(--ease-spring) forwards;
+}
+@keyframes slam{
+  0%{opacity:0; transform:scale(1.8) rotate(-8deg);}
+  55%{opacity:1; transform:scale(0.95) rotate(2deg);}
+  80%{transform:scale(1.03) rotate(-1deg);}
+  100%{opacity:1; transform:scale(1) rotate(-2deg);}
 }
 
-function renderTags(){
-  const tagsEl = document.getElementById('tags');
-  tagsEl.innerHTML = '';
+.burst{
+  position:absolute; width:240px; height:240px; z-index:0;
+  animation:burstSpin 30s linear infinite;
+  opacity:0.85;
+}
+@keyframes burstSpin{to{transform:rotate(360deg);}}
 
-  const allBtn = document.createElement('button');
-  allBtn.type = 'button';
-  allBtn.className = 'tag' + (activeCat === 'all' ? ' active' : '');
-  allBtn.textContent = 'all';
-  allBtn.addEventListener('click', () => { activeCat = 'all'; renderTags(); applyFilters(); });
-  tagsEl.appendChild(allBtn);
-
-  CATEGORIES.forEach(cat => {
-    const wrap = document.createElement('span');
-    wrap.className = 'tag-wrap';
-
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'tag' + (activeCat === cat ? ' active' : '');
-    btn.textContent = cat;
-    btn.addEventListener('click', () => { activeCat = cat; renderTags(); applyFilters(); });
-
-    const x = document.createElement('span');
-    x.className = 'tag-x';
-    x.textContent = '×';
-    x.title = 'remove this filter';
-    x.addEventListener('click', e => {
-      e.stopPropagation();
-      const inUse = TOOLS.filter(t => t.cat === cat).length;
-      const msg = inUse
-        ? `Remove filter "${cat}"? ${inUse} tool(s) using it will move to "misc".`
-        : `Remove filter "${cat}"?`;
-      if(!confirm(msg)) return;
-      CATEGORIES = CATEGORIES.filter(c => c !== cat);
-      if(!CATEGORIES.includes('misc')) CATEGORIES.push('misc');
-      TOOLS = TOOLS.map(t => t.cat === cat ? { ...t, cat: 'misc' } : t);
-      if(activeCat === cat) activeCat = 'all';
-      saveCategories(); saveTools();
-      renderTags(); applyFilters();
-    });
-
-    wrap.appendChild(btn);
-    wrap.appendChild(x);
-    tagsEl.appendChild(wrap);
-  });
-
-  const addBtn = document.createElement('button');
-  addBtn.type = 'button';
-  addBtn.className = 'tag-add';
-  addBtn.textContent = '+ filter';
-  addBtn.addEventListener('click', () => {
-    const name = prompt('Name your new filter:');
-    if(!name) return;
-    const clean = name.trim().toLowerCase();
-    if(!clean) return;
-    if(!CATEGORIES.includes(clean)) CATEGORIES.push(clean);
-    saveCategories();
-    activeCat = clean;
-    renderTags();
-    applyFilters();
-  });
-  tagsEl.appendChild(addBtn);
-
-  const catList = document.getElementById('cat-list');
-  catList.innerHTML = '';
-  CATEGORIES.forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c;
-    catList.appendChild(opt);
-  });
+h1{
+  font-family:'Bangers', cursive; font-size:68px; letter-spacing:3px;
+  background:linear-gradient(135deg, var(--yellow), #fff, var(--yellow));
+  background-size:200% 200%;
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  animation:titleShimmer 5s ease-in-out infinite;
+  position:relative; z-index:1; transform:rotate(-2deg);
+  filter:drop-shadow(3px 3px 0 var(--ink));
+}
+@keyframes titleShimmer{
+  0%,100%{background-position:0% 50%;}
+  50%{background-position:100% 50%;}
 }
 
-function applyFilters(){
-  const q = document.getElementById('search').value.trim().toLowerCase();
-  const filtered = TOOLS.filter(t => {
-    const matchesCat = activeCat === 'all' || (t.cat || 'misc') === activeCat;
-    const matchesQ = !q || t.name.toLowerCase().includes(q) || (t.desc || '').toLowerCase().includes(q);
-    return matchesCat && matchesQ;
-  });
-  renderGrid(filtered);
+.subtitle{
+  font-size:14px; font-weight:700; max-width:440px; margin:8px auto 0;
+  opacity:0; animation:fadeSlideUp 0.5s 0.5s var(--ease-out-expo) forwards;
+  color:var(--text-secondary);
+}
+@keyframes fadeSlideUp{
+  from{opacity:0; transform:translateY(16px);}
+  to{opacity:1; transform:translateY(0);}
 }
 
-function debounce(fn, delay = 100){
-  let timer;
-  return function(...args){
-    clearTimeout(timer);
-    timer = setTimeout(() => fn.apply(this, args), delay);
-  };
+/* ==========================================================
+   USER BAR
+   ========================================================== */
+.user-bar{
+  display:flex; align-items:center; justify-content:center; gap:12px;
+  margin-top:14px; opacity:0; animation:fadeSlideUp 0.5s 0.55s var(--ease-spring) forwards;
+}
+.user-badge{
+  display:inline-flex; align-items:center; gap:8px;
+  background:rgba(22, 28, 44, 0.85);
+  border:1.5px solid var(--glass-border); border-radius:24px;
+  padding:7px 16px; font-size:12px; font-weight:800;
+  box-shadow:0 4px 14px rgba(0,0,0,0.22);
+  transition:transform 0.25s var(--ease-spring), box-shadow 0.25s;
+}
+.user-badge:hover{transform:translateY(-2px); box-shadow:0 8px 20px rgba(0,0,0,0.3);}
+.user-badge .user-avatar{
+  width:26px; height:26px; border-radius:50%;
+  background:linear-gradient(135deg, var(--blue), var(--cyan)); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Bangers', cursive; font-size:13px; border:2px solid rgba(255,255,255,0.3);
+  flex-shrink:0; overflow:hidden;
+}
+.user-badge .user-avatar img{
+  width:100%; height:100%; object-fit:cover; border-radius:50%;
+}
+.signout-btn{
+  background:rgba(22, 28, 44, 0.85);
+  border:1.5px solid var(--glass-border); border-radius:24px;
+  font-weight:800; font-size:11px; padding:7px 16px; cursor:pointer;
+  box-shadow:0 4px 14px rgba(0,0,0,0.22);
+  transition:transform 0.25s var(--ease-spring), color 0.2s, box-shadow 0.25s;
+  color:#ff6b6b;
+}
+.signout-btn:hover{transform:translateY(-2px); box-shadow:0 8px 22px rgba(0,0,0,0.3); color:#ff4444;}
+.signout-btn:active{transform:translateY(1px);}
+
+/* ==========================================================
+   CONTROLS
+   ========================================================== */
+.controls{
+  display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:12px;
+  opacity:0; animation:fadeSlideUp 0.5s 0.6s var(--ease-out-expo) forwards;
+}
+.search-row{
+  display:flex; align-items:center; gap:8px;
+  background:rgba(18, 24, 40, 0.88);
+  border:1.5px solid var(--glass-border); border-radius:14px; padding:13px 18px; flex:1; min-width:220px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.18);
+  transition:border-color 0.2s, box-shadow 0.2s, transform 0.2s var(--ease-smooth);
+}
+.search-row:focus-within{
+  border-color:var(--blue); box-shadow:0 4px 22px rgba(0,114,206,0.18), 0 0 0 3px rgba(0,114,206,0.07);
+  transform:translateY(-1px);
+}
+.search-row input{
+  background:none; border:none; outline:none; color:var(--text-primary);
+  font-family:'Rubik', sans-serif; font-weight:600; font-size:14px; flex:1;
+}
+.search-row input::placeholder{color:var(--text-secondary);}
+
+.add-btn{
+  background:linear-gradient(135deg, var(--red), #c41018); color:#fff;
+  border:none; border-radius:14px;
+  font-family:'Bangers', cursive; font-size:16px; letter-spacing:0.5px; padding:13px 22px;
+  cursor:pointer;
+  box-shadow:0 4px 16px rgba(237,28,36,0.3);
+  transition:transform 0.25s var(--ease-spring), box-shadow 0.25s;
+  position:relative; overflow:hidden;
+}
+.add-btn::after{
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.22) 45%, rgba(255,255,255,0.22) 55%, transparent 60%);
+  transform:translateX(-150%); transition:transform 0.5s var(--ease-smooth);
+}
+.add-btn:hover::after{transform:translateX(150%);}
+.add-btn:hover{transform:translateY(-2px) scale(1.03); box-shadow:0 8px 26px rgba(237,28,36,0.4);}
+.add-btn:active{transform:translateY(1px) scale(0.98);}
+
+/* ==========================================================
+   FILTERS / TAGS
+   ========================================================== */
+.filter-row{
+  display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;
+  opacity:0; animation:fadeSlideUp 0.5s 0.65s var(--ease-out-expo) forwards;
+}
+.tags{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+.tag-wrap{position:relative; display:inline-flex;}
+
+.tag{
+  background:rgba(255,255,255,0.08);
+  border:1.5px solid var(--glass-border); border-radius:24px; color:var(--text-primary);
+  font-weight:700; font-size:12px; padding:9px 18px; cursor:pointer;
+  transition:transform 0.2s var(--ease-smooth), background 0.2s, box-shadow 0.2s; white-space:nowrap;
+}
+.tag:hover{transform:translateY(-2px); box-shadow:0 5px 14px rgba(0,0,0,0.22); background:rgba(255,255,255,0.14);}
+.tag.active{
+  background:linear-gradient(135deg, var(--blue), var(--cyan)); color:#fff;
+  border-color:transparent;
+  box-shadow:0 4px 16px rgba(0,114,206,0.35);
+}
+.tag-x{
+  position:absolute; top:-7px; right:-7px; width:20px; height:20px; border-radius:50%;
+  background:var(--red); color:#fff; border:none; font-size:10px; line-height:1;
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  opacity:0; transform:scale(0.3) rotate(-90deg);
+  transition:transform 0.25s var(--ease-spring), opacity 0.2s;
+  box-shadow:0 2px 8px rgba(237,28,36,0.4);
+}
+.tag-wrap:hover .tag-x{opacity:1; transform:scale(1) rotate(0);}
+.tag-add{
+  background:none; border:1.5px dashed var(--glass-border); border-radius:24px; color:var(--text-secondary);
+  font-weight:700; font-size:12px; padding:9px 18px; cursor:pointer; opacity:0.7;
+  transition:transform 0.2s var(--ease-smooth), border-color 0.2s, color 0.2s;
+}
+.tag-add:hover{opacity:1; transform:translateY(-2px); border-color:var(--blue); color:var(--blue);}
+
+.storage-note{
+  font-size:11px; font-weight:600; color:var(--text-secondary); margin-bottom:20px;
+  opacity:0; animation:fadeSlideUp 0.5s 0.7s var(--ease-out-expo) forwards;
 }
 
-function refresh(){
-  renderTags();
-  applyFilters();
+/* ==========================================================
+   SAVE INDICATOR
+   ========================================================== */
+.save-indicator{
+  position:fixed; bottom:24px; right:24px;
+  background:rgba(20, 26, 42, 0.94);
+  border:1.5px solid var(--glass-border); border-radius:14px; padding:10px 20px;
+  font-size:12px; font-weight:800;
+  box-shadow:0 8px 28px rgba(0,0,0,0.28);
+  z-index:100; opacity:0; transform:translateY(14px) scale(0.94);
+  transition:opacity 0.3s var(--ease-out-expo), transform 0.3s var(--ease-spring);
+}
+.save-indicator.show{opacity:1; transform:translateY(0) scale(1);}
+.save-indicator.saving{color:var(--blue);}
+.save-indicator.saved{color:#28a745;}
+.save-indicator.error{color:var(--red);}
+
+/* ==========================================================
+   CARD GRID
+   ========================================================== */
+.grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(215px, 1fr)); gap:24px;
+  opacity:0; animation:fadeSlideUp 0.5s 0.75s var(--ease-out-expo) forwards;
 }
 
-document.getElementById('search').addEventListener('input', debounce(applyFilters, 90));
+/* ==========================================================
+   CARDS — Smooth & Lightweight
+   ========================================================== */
+.card{
+  background:rgba(18, 24, 38, 0.88);
+  border:1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius:18px; padding:22px;
+  display:flex; flex-direction:column; gap:10px; text-decoration:none; color:var(--text-primary);
+  position:relative;
+  box-shadow:0 6px 20px rgba(0,0,0,0.22);
+  transition:transform 0.25s var(--ease-out-expo), box-shadow 0.25s var(--ease-out-expo), border-color 0.25s;
+  contain:content;
+}
+.card.animate-in{
+  opacity:0; animation:cardIn 0.4s var(--ease-spring) both;
+}
+@keyframes cardIn{
+  from{opacity:0; transform:translate3d(0, 24px, 0) scale(0.95);}
+  to{opacity:1; transform:translate3d(0, 0, 0) scale(1);}
+}
+.card:hover{
+  transform:translate3d(0, -5px, 0) scale(1.015);
+  box-shadow:0 16px 36px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.15) inset;
+  border-color:rgba(255,255,255,0.2);
+}
+.card:focus-visible{outline:3px solid var(--blue); outline-offset:2px;}
 
-// ===================================================================
-//  ADD / EDIT MODAL
-// ===================================================================
-const overlay = document.getElementById('modalOverlay');
-const form = document.getElementById('toolForm');
-const modalTitle = document.getElementById('modalTitle');
-const deleteBtn = document.getElementById('deleteBtn');
+/* Subtle top-edge shine */
+.card::before{
+  content:''; position:absolute; inset:0; border-radius:18px; z-index:1; pointer-events:none;
+  background:linear-gradient(160deg, rgba(255,255,255,0.07) 0%, transparent 45%);
+  opacity:0; transition:opacity 0.25s;
+}
+.card:hover::before{opacity:1;}
 
-function openModal(tool){
-  editingId = tool ? tool.id : null;
-  modalTitle.textContent = tool ? 'EDIT GADGET!' : 'NEW GADGET!';
-  document.getElementById('f-name').value = tool ? tool.name : '';
-  document.getElementById('f-url').value = tool ? tool.url : '';
-  document.getElementById('f-icon').value = tool ? (tool.icon || '') : '';
-  document.getElementById('f-desc').value = tool ? (tool.desc || '') : '';
-  document.getElementById('f-cat').value = tool ? (tool.cat || '') : (activeCat !== 'all' ? activeCat : '');
-  deleteBtn.style.display = tool ? 'inline-block' : 'none';
-  overlay.classList.add('open');
-  document.getElementById('f-name').focus();
+/* Bottom accent line */
+.card::after{
+  content:''; position:absolute; bottom:-2px; left:25%; right:25%; height:3px;
+  background:var(--card-color, var(--blue));
+  border-radius:3px;
+  transform:scaleX(0); transition:transform 0.3s var(--ease-out-expo);
+  transform-origin:center;
+  opacity:0.75;
+}
+.card:hover::after{transform:scaleX(1);}
+
+.card-actions{
+  position:absolute; top:-10px; left:-8px;
+  display:flex; gap:6px;
+  opacity:0; z-index:5; transform:translateY(6px);
+  transition:opacity 0.2s, transform 0.2s var(--ease-spring);
+}
+.card:hover .card-actions{opacity:1; transform:translateY(0);}
+
+.icon-btn{
+  width:32px; height:32px; border-radius:50%; border:none;
+  background:linear-gradient(135deg, var(--yellow), #ffb700); color:var(--ink);
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; cursor:pointer;
+  box-shadow:0 3px 10px rgba(0,0,0,0.18);
+  transition:transform 0.2s var(--ease-spring), box-shadow 0.2s;
+}
+.icon-btn.del{background:linear-gradient(135deg, #fff, #f0f0f0);}
+.icon-btn:hover{transform:translateY(-2px) scale(1.1); box-shadow:0 6px 16px rgba(0,0,0,0.22);}
+.icon-btn:active{transform:translateY(1px) scale(0.95);}
+
+.pow{
+  position:absolute; top:-14px; right:-10px; font-family:'Bangers', cursive; font-size:13px;
+  color:#fff; background:var(--card-color, var(--red)); border:none; border-radius:50%;
+  width:40px; height:40px; display:flex; align-items:center; justify-content:center;
+  transform:rotate(12deg) scale(0); transition:transform 0.3s var(--ease-spring); line-height:1;
+  box-shadow:0 3px 12px rgba(0,0,0,0.22);
+  z-index:2;
+}
+.card:hover .pow{transform:rotate(12deg) scale(1);}
+
+.card-top{display:flex; align-items:center; justify-content:space-between; position:relative; z-index:2;}
+.icon-box{
+  width:46px; height:46px; border:1.5px solid var(--glass-border); border-radius:14px;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(255, 255, 255, 0.07);
+  flex-shrink:0; font-family:'Bangers', cursive; font-size:16px; overflow:hidden;
+  transition:transform 0.25s var(--ease-spring);
+}
+.card:hover .icon-box{transform:scale(1.08) rotate(-5deg);}
+.icon-box img{width:22px; height:22px; object-fit:contain;}
+
+.name{font-size:15px; font-weight:800; position:relative; z-index:2;}
+.desc{font-size:12px; font-weight:500; color:var(--text-secondary); line-height:1.5; position:relative; z-index:2;}
+.cat{
+  align-self:flex-start; font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.4px;
+  background:var(--card-color, var(--blue)); color:#fff; padding:4px 12px; border-radius:8px;
+  position:relative; z-index:2;
+  box-shadow:0 2px 6px rgba(0,0,0,0.12);
 }
 
-function closeModal(){
-  overlay.classList.remove('open');
-  editingId = null;
-  form.reset();
+.empty{
+  grid-column:1/-1; padding:40px 20px; text-align:center; font-weight:700;
+  background:rgba(18, 24, 38, 0.88);
+  border:1.5px dashed var(--glass-border); border-radius:18px;
 }
 
-document.getElementById('openAdd').addEventListener('click', () => openModal(null));
-document.getElementById('cancelBtn').addEventListener('click', closeModal);
-overlay.addEventListener('click', e => { if(e.target === overlay) closeModal(); });
+/* ==========================================================
+   FOOTER
+   ========================================================== */
+footer{
+  margin-top:40px; text-align:center; font-size:11.5px; font-weight:600; color:var(--text-secondary); line-height:1.8;
+  opacity:0; animation:fadeSlideUp 0.5s 0.85s var(--ease-out-expo) forwards;
+}
+footer code{color:var(--blue); font-weight:800;}
+footer button{
+  background:none; border:none; text-decoration:underline; color:var(--text-secondary);
+  font-weight:700; font-size:11.5px; cursor:pointer; padding:0;
+  transition:color 0.2s;
+}
+footer button:hover{color:var(--yellow);}
 
-form.addEventListener('submit', e => {
-  e.preventDefault();
-  const data = {
-    name: document.getElementById('f-name').value.trim(),
-    url: document.getElementById('f-url').value.trim(),
-    icon: document.getElementById('f-icon').value.trim(),
-    desc: document.getElementById('f-desc').value.trim(),
-    cat: (document.getElementById('f-cat').value.trim() || 'misc').toLowerCase(),
-  };
-  if(!data.name || !data.url) return;
-  if(!/^https?:\/\//i.test(data.url)) data.url = 'https://' + data.url;
+/* ==========================================================
+   ADD / EDIT MODAL
+   ========================================================== */
+#modalOverlay{
+  position:fixed; inset:0;
+  background:rgba(5,5,15,0.68); backdrop-filter:blur(5px);
+  -webkit-backdrop-filter:blur(5px);
+  z-index:150;
+  display:none; align-items:center; justify-content:center; padding:20px;
+}
+#modalOverlay.open{display:flex;}
+.modal{
+  width:min(420px, 100%);
+  background:rgba(255, 255, 255, 0.96);
+  border:1.5px solid rgba(255, 255, 255, 0.4); border-radius:24px;
+  padding:30px; box-shadow:0 24px 64px rgba(0,0,0,0.4); max-height:88vh; overflow-y:auto;
+  animation:modalIn 0.38s var(--ease-spring) both;
+  color:var(--ink);
+}
+@keyframes modalIn{
+  from{opacity:0; transform:translateY(24px) scale(0.95);}
+  to{opacity:1; transform:translateY(0) scale(1);}
+}
+.modal-title{
+  font-family:'Bangers', cursive; font-size:28px;
+  background:linear-gradient(135deg, var(--blue), var(--cyan));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  margin-bottom:18px; transform:rotate(-1deg);
+}
+.field{margin-bottom:14px;}
+.field label{display:block; font-size:11.5px; font-weight:800; text-transform:uppercase; margin-bottom:5px; letter-spacing:0.3px; color:var(--ink);}
+.field input{
+  width:100%; border:1.5px solid rgba(20,20,20,0.12); border-radius:12px; padding:11px 14px;
+  font-family:'Rubik', sans-serif; font-weight:600; font-size:13.5px; outline:none;
+  background:rgba(242, 240, 234, 0.9);
+  transition:border-color 0.2s, box-shadow 0.2s, transform 0.2s var(--ease-smooth);
+  color:var(--ink);
+}
+.field input:focus{border-color:var(--blue); box-shadow:0 0 0 3px rgba(0,114,206,0.08); transform:translateY(-1px);}
+.field .hint{font-size:10.5px; color:#8a8168; font-weight:600; margin-top:4px;}
 
-  if(!CATEGORIES.includes(data.cat)){
-    CATEGORIES.push(data.cat);
-    saveCategories();
-  }
+.modal-actions{display:flex; gap:10px; margin-top:22px; flex-wrap:wrap;}
+.modal-actions button{
+  border:none; border-radius:12px; padding:12px 20px;
+  font-family:'Bangers', cursive; font-size:16px; letter-spacing:0.5px; cursor:pointer;
+  transition:transform 0.25s var(--ease-spring), box-shadow 0.25s;
+}
+.modal-actions button:hover{transform:translateY(-2px);}
+.modal-actions button:active{transform:translateY(1px);}
+.btn-save{
+  background:linear-gradient(135deg, var(--yellow), #ffb700); flex:1; color:var(--ink);
+  box-shadow:0 4px 14px rgba(255,212,0,0.3);
+}
+.btn-save:hover{box-shadow:0 8px 22px rgba(255,212,0,0.45);}
+.btn-cancel{background:rgba(255,255,255,0.7); border:1.5px solid rgba(20,20,20,0.08) !important; color:var(--ink);}
+.btn-delete{
+  background:linear-gradient(135deg, var(--red), #c41018); color:#fff;
+  box-shadow:0 4px 14px rgba(237,28,36,0.28);
+}
+.btn-delete:hover{box-shadow:0 8px 22px rgba(237,28,36,0.42);}
 
-  if(editingId){
-    TOOLS = TOOLS.map(t => t.id === editingId ? { ...t, ...data } : t);
-  } else {
-    TOOLS.push({ id: uid(), ...data });
-  }
-  saveTools();
-  closeModal();
-  refresh();
-});
+/* ==========================================================
+   PASSWORD STRENGTH
+   ========================================================== */
+.pw-strength{
+  height:4px; border-radius:2px; margin-top:4px;
+  transition:width 0.35s var(--ease-out-expo), background 0.35s;
+}
+.pw-strength-label{font-size:10px; font-weight:700; margin-top:2px; min-height:14px; transition:color 0.3s;}
 
-deleteBtn.addEventListener('click', () => {
-  if(editingId && confirm('Remove this tool from the toolkit?')){
-    TOOLS = TOOLS.filter(t => t.id !== editingId);
-    saveTools();
-    closeModal();
-    refresh();
-  }
-});
-
-document.getElementById('resetBtn').addEventListener('click', () => {
-  if(confirm('Reset the toolkit back to the starter pack? Your added/edited cards and filters will be lost.')){
-    TOOLS = JSON.parse(JSON.stringify(DEFAULT_TOOLS));
-    CATEGORIES = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
-    activeCat = 'all';
-    isInitialGridLoad = true;
-    saveTools(); saveCategories();
-    refresh();
-  }
-});
+/* ==========================================================
+   CUSTOM SCROLLBAR
+   ========================================================== */
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1); border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.2);}
