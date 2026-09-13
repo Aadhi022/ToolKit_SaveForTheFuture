@@ -66,58 +66,70 @@ const wrapEl         = document.getElementById('wrap');
 const saveIndicator  = document.getElementById('saveIndicator');
 
 // ===================================================================
-//  ANIMATED BACKGROUND — Floating Particles & 3D Parallax
+//  ANIMATED BACKGROUND — Lightweight Particles & Parallax
 // ===================================================================
 (function initParticles(){
   const container = document.getElementById('bgParticles');
   if(!container) return;
-  const PARTICLE_COUNT = 30;
+  const PARTICLE_COUNT = 8;
+  const fragment = document.createDocumentFragment();
   for(let i = 0; i < PARTICLE_COUNT; i++){
     const p = document.createElement('div');
     p.className = 'bg-particle';
-    const size = Math.random() * 3 + 1;
-    const duration = Math.random() * 15 + 10;
-    const delay = Math.random() * 15;
+    const size = Math.random() * 2.5 + 1.5;
+    const duration = Math.random() * 12 + 12;
+    const delay = Math.random() * 10;
     const left = Math.random() * 100;
     p.style.cssText = `
       width:${size}px; height:${size}px;
       left:${left}%;
       animation-duration:${duration}s;
       animation-delay:${delay}s;
-      opacity:${Math.random() * 0.4 + 0.1};
     `;
-    container.appendChild(p);
+    fragment.appendChild(p);
   }
+  container.appendChild(fragment);
 })();
 
-// Smooth 3D background parallax on cursor movement
+// Smooth background parallax with smart idle sleep
 (function init3DParallax(){
   const layer = document.getElementById('bgParallax');
   if(!layer) return;
 
   let mouseX = 0, mouseY = 0;
   let currentX = 0, currentY = 0;
+  let isTicking = false;
 
   window.addEventListener('mousemove', e => {
     const cx = window.innerWidth / 2;
     const cy = window.innerHeight / 2;
     mouseX = (e.clientX - cx) / cx;
     mouseY = (e.clientY - cy) / cy;
+
+    if(!isTicking){
+      isTicking = true;
+      requestAnimationFrame(render);
+    }
   }, { passive: true });
 
   function render(){
-    currentX += (mouseX - currentX) * 0.05;
-    currentY += (mouseY - currentY) * 0.05;
+    const dx = mouseX - currentX;
+    const dy = mouseY - currentY;
+    currentX += dx * 0.06;
+    currentY += dy * 0.06;
 
-    const moveX = currentX * 35;
-    const moveY = currentY * 25;
-    const rotX = currentY * -4;
-    const rotY = currentX * 4;
+    const moveX = (currentX * 25).toFixed(1);
+    const moveY = (currentY * 18).toFixed(1);
 
-    layer.style.transform = `translate3d(${moveX}px, ${moveY}px, 0) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
-    requestAnimationFrame(render);
+    layer.style.transform = `translate3d(${moveX}px, ${moveY}px, 0)`;
+
+    // Only continue animation loop if cursor moved and delta is perceptible
+    if(Math.abs(dx) > 0.002 || Math.abs(dy) > 0.002){
+      requestAnimationFrame(render);
+    } else {
+      isTicking = false;
+    }
   }
-  requestAnimationFrame(render);
 })();
 
 // ===================================================================
@@ -402,6 +414,7 @@ function unlockApp(userId){
   document.getElementById('userAvatar').textContent = userId.charAt(0).toUpperCase();
   document.getElementById('userNameDisplay').textContent = userId;
   activeCat = 'all';
+  isInitialGridLoad = true;
   refresh();
 }
 
@@ -452,6 +465,8 @@ function iconMarkup(tool){
   return initial;
 }
 
+let isInitialGridLoad = true;
+
 function renderGrid(list){
   const grid = document.getElementById('grid');
   grid.innerHTML = '';
@@ -459,13 +474,16 @@ function renderGrid(list){
     grid.innerHTML = '<div class="empty">no gadgets found — try another search or filter!</div>';
     return;
   }
+
+  const fragment = document.createDocumentFragment();
   list.forEach((tool, i) => {
     const color = COLORS[i % COLORS.length];
     const card = document.createElement('a');
-    card.className = 'card';
+    card.className = 'card' + (isInitialGridLoad ? ' animate-in' : '');
     card.style.setProperty('--card-color', color);
-    // staggered entrance delay
-    card.style.animationDelay = `${0.06 * i}s`;
+    if(isInitialGridLoad){
+      card.style.animationDelay = `${Math.min(0.04 * i, 0.4)}s`;
+    }
     card.href = tool.url;
     card.target = '_blank';
     card.rel = 'noopener noreferrer';
@@ -483,21 +501,6 @@ function renderGrid(list){
       <div class="cat">${tool.cat || 'misc'}</div>
     `;
 
-    // ---- 3D tilt effect on mousemove ----
-    card.addEventListener('mousemove', e => {
-      const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
-      const rotateX = ((y - centerY) / centerY) * -10;
-      const rotateY = ((x - centerX) / centerX) * 10;
-      card.style.transform = `perspective(600px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(12px) scale(1.03)`;
-    });
-    card.addEventListener('mouseleave', () => {
-      card.style.transform = '';
-    });
-
     card.querySelector('.edit').addEventListener('click', e => {
       e.preventDefault(); e.stopPropagation();
       openModal(tool);
@@ -510,8 +513,10 @@ function renderGrid(list){
         refresh();
       }
     });
-    grid.appendChild(card);
+    fragment.appendChild(card);
   });
+  grid.appendChild(fragment);
+  isInitialGridLoad = false;
 }
 
 function renderTags(){
@@ -595,12 +600,20 @@ function applyFilters(){
   renderGrid(filtered);
 }
 
+function debounce(fn, delay = 100){
+  let timer;
+  return function(...args){
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
 function refresh(){
   renderTags();
   applyFilters();
 }
 
-document.getElementById('search').addEventListener('input', applyFilters);
+document.getElementById('search').addEventListener('input', debounce(applyFilters, 90));
 
 // ===================================================================
 //  ADD / EDIT MODAL
@@ -674,6 +687,7 @@ document.getElementById('resetBtn').addEventListener('click', () => {
     TOOLS = JSON.parse(JSON.stringify(DEFAULT_TOOLS));
     CATEGORIES = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
     activeCat = 'all';
+    isInitialGridLoad = true;
     saveTools(); saveCategories();
     refresh();
   }
