@@ -71,14 +71,14 @@ const saveIndicator  = document.getElementById('saveIndicator');
 (function initParticles(){
   const container = document.getElementById('bgParticles');
   if(!container) return;
-  const PARTICLE_COUNT = 8;
+  const PARTICLE_COUNT = 5; // Reduced for perf
   const fragment = document.createDocumentFragment();
   for(let i = 0; i < PARTICLE_COUNT; i++){
     const p = document.createElement('div');
     p.className = 'bg-particle';
-    const size = Math.random() * 2.5 + 1.5;
-    const duration = Math.random() * 12 + 12;
-    const delay = Math.random() * 10;
+    const size = Math.random() * 2 + 1.5;
+    const duration = Math.random() * 14 + 16;
+    const delay = Math.random() * 12;
     const left = Math.random() * 100;
     p.style.cssText = `
       width:${size}px; height:${size}px;
@@ -91,7 +91,7 @@ const saveIndicator  = document.getElementById('saveIndicator');
   container.appendChild(fragment);
 })();
 
-// Smooth background parallax with smart idle sleep
+// Smooth background parallax — reduced movement for better perf
 (function init3DParallax(){
   const layer = document.getElementById('bgParallax');
   if(!layer) return;
@@ -115,15 +115,15 @@ const saveIndicator  = document.getElementById('saveIndicator');
   function render(){
     const dx = mouseX - currentX;
     const dy = mouseY - currentY;
-    currentX += dx * 0.06;
-    currentY += dy * 0.06;
+    currentX += dx * 0.05;
+    currentY += dy * 0.05;
 
-    const moveX = (currentX * 25).toFixed(1);
-    const moveY = (currentY * 18).toFixed(1);
+    // Reduced movement range: 12px / 8px instead of 25px / 18px
+    const moveX = (currentX * 12).toFixed(1);
+    const moveY = (currentY * 8).toFixed(1);
 
     layer.style.transform = `translate3d(${moveX}px, ${moveY}px, 0)`;
 
-    // Only continue animation loop if cursor moved and delta is perceptible
     if(Math.abs(dx) > 0.002 || Math.abs(dy) > 0.002){
       requestAnimationFrame(render);
     } else {
@@ -165,6 +165,7 @@ let editingId = null;
 let activeCat = 'all';
 let currentUser = null;
 let currentUserId = null;
+let currentUserPhoto = null;
 
 // ===================================================================
 //  HELPERS
@@ -230,6 +231,9 @@ function authErrorMessage(code){
     'auth/too-many-requests':     'too many attempts — try again in a minute.',
     'auth/network-request-failed':'network error — check your connection.',
     'auth/invalid-email':         'invalid user ID format.',
+    'auth/popup-closed-by-user':  'sign-in popup was closed. try again!',
+    'auth/popup-blocked':         'popup blocked by browser. please allow popups for this site.',
+    'auth/cancelled-popup-request': '',
   };
   return map[code] || 'something went wrong. try again.';
 }
@@ -250,6 +254,44 @@ document.getElementById('showSignIn').addEventListener('click', () => {
   signInError.textContent = '';
   signInIdInput.focus();
 });
+
+// ===================================================================
+//  GOOGLE SIGN-IN
+// ===================================================================
+async function doGoogleSignIn(triggerBtn){
+  const btn = document.getElementById(triggerBtn);
+  if(btn){ btn.disabled = true; btn.textContent = 'opening google...'; }
+
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    await auth.signInWithPopup(provider);
+    // onAuthStateChanged handles the rest
+  } catch(err) {
+    const msg = authErrorMessage(err.code);
+    if(msg) {
+      // Show error in whichever view is visible
+      if(signInView.style.display !== 'none') signInError.textContent = msg;
+      else signUpError.textContent = msg;
+      shakePanel();
+    }
+  } finally {
+    if(btn){
+      btn.disabled = false;
+      btn.innerHTML = `
+        <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continue with Google`;
+    }
+  }
+}
+
+document.getElementById('googleSignInBtn').addEventListener('click', () => doGoogleSignIn('googleSignInBtn'));
+document.getElementById('googleSignUpBtn').addEventListener('click', () => doGoogleSignIn('googleSignUpBtn'));
 
 // ===================================================================
 //  SIGN UP
@@ -359,7 +401,7 @@ document.getElementById('signOutBtn').addEventListener('click', async () => {
 // ===================================================================
 //  FIRESTORE: LOAD & SAVE
 // ===================================================================
-async function loadUserData(firebaseUid){
+async function loadUserData(firebaseUid, fallbackUserId){
   try{
     const doc = await db.collection('toolkits').doc(firebaseUid).get();
     if(doc.exists){
@@ -367,9 +409,15 @@ async function loadUserData(firebaseUid){
       TOOLS = data.tools || JSON.parse(JSON.stringify(DEFAULT_TOOLS));
       CATEGORIES = data.categories || JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
     } else {
+      // New Google user — create their doc with defaults
       TOOLS = JSON.parse(JSON.stringify(DEFAULT_TOOLS));
       CATEGORIES = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
-      await saveToFirestore();
+      await db.collection('toolkits').doc(firebaseUid).set({
+        userId: fallbackUserId,
+        tools: TOOLS,
+        categories: CATEGORIES,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
     }
   } catch(err){
     console.error('Error loading data:', err);
@@ -407,11 +455,19 @@ function saveCategories(){ scheduleSave(); }
 // ===================================================================
 //  AUTH STATE OBSERVER
 // ===================================================================
-function unlockApp(userId){
+function unlockApp(userId, photoURL){
   currentUserId = userId;
   authEl.classList.add('hidden');
   wrapEl.classList.remove('locked');
-  document.getElementById('userAvatar').textContent = userId.charAt(0).toUpperCase();
+
+  // Avatar: show Google profile photo if available, else initial letter
+  const avatarEl = document.getElementById('userAvatar');
+  if(photoURL){
+    avatarEl.innerHTML = `<img src="${photoURL}" alt="${userId}" referrerpolicy="no-referrer">`;
+  } else {
+    avatarEl.textContent = userId.charAt(0).toUpperCase();
+  }
+
   document.getElementById('userNameDisplay').textContent = userId;
   activeCat = 'all';
   isInitialGridLoad = true;
@@ -421,6 +477,7 @@ function unlockApp(userId){
 function lockApp(){
   currentUser = null;
   currentUserId = null;
+  currentUserPhoto = null;
   TOOLS = [];
   CATEGORIES = [];
   authEl.classList.remove('hidden');
@@ -439,9 +496,25 @@ if(firebaseReady){
     authLoading.style.display = 'none';
     if(user){
       currentUser = user;
-      const userId = user.email.split('@')[0];
-      await loadUserData(user.uid);
-      unlockApp(userId);
+
+      let userId;
+      const isGoogleUser = user.providerData.some(p => p.providerId === 'google.com');
+
+      if(isGoogleUser){
+        // Google user: use displayName (first name), fall back to email prefix
+        const displayName = user.displayName || '';
+        userId = displayName
+          ? displayName.split(' ')[0].toLowerCase().replace(/[^a-z0-9_-]/g, '') || user.email.split('@')[0]
+          : user.email.split('@')[0];
+        currentUserPhoto = user.photoURL || null;
+      } else {
+        // Email/password user: strip @toolkit.app
+        userId = user.email.split('@')[0];
+        currentUserPhoto = null;
+      }
+
+      await loadUserData(user.uid, userId);
+      unlockApp(userId, currentUserPhoto);
     } else {
       lockApp();
     }
